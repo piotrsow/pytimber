@@ -17,7 +17,21 @@ __cmmnbuild_deps__ = [
     "accsoft-cals-extr-client",
     "accsoft-cals-extr-domain",
     "lhc-commons-cals-utils",
+    "nxcals-data-access",
+    "nxcals-common-spark",
     "slf4j-log4j12",
     "slf4j-api",
     "log4j"
 ]
+
+nxcals=[
+    "nxcals-data-access",
+    "nxcals-common-spark",
+    "nxcals-hadoop-pro-config",
+    "spark-core_2.11",
+    "spark-yarn_2.11",
+    "spark-sql_2.11",
+    "spark-hive_2.11",
+    "spark-avro_2.11",
+    "hadoop-client",
+        ]

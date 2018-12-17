@@ -54,7 +54,7 @@ def parsedate(t,zone='cern'):
     float(t)
     return t
   except ValueError:
-    return parsedate_myl(t,zone='cern')
+    return parsedate_myl(t,zone=zone)
 
 def dumpdate(t=None,fmt='%Y-%m-%d %H:%M:%S.SSS',zone='cern'):
   """
