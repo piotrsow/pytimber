@@ -11,7 +11,7 @@ from . import timberdata
 
 from .pagestore import PageStore
 
-__version__ = "2.7.0"
+__version__ = "2.7.3"
 
 __cmmnbuild_deps__ = [
     "accsoft-cals-extr-client",
@@ -19,6 +19,8 @@ __cmmnbuild_deps__ = [
     "lhc-commons-cals-utils",
     "nxcals-data-access",
     "nxcals-common-spark",
+    "lhc-nxcals-extraction-utils",
+    "spring-boot-starter",
     "slf4j-log4j12",
     "slf4j-api",
     "log4j"
