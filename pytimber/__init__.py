@@ -23,7 +23,7 @@ __cmmnbuild_deps__ = [
     "spring-boot-starter",
     "slf4j-log4j12",
     "slf4j-api",
-    "log4j"
+    "log4j",
 ]
 
 nxcals=[
