@@ -112,19 +112,23 @@ klist
         self._System.setProperty("kerberos.keytab", self._keytab)
         self._System.setProperty("kerberos.principal", self._user)
         self._System.setProperty("service.url", "https://cs-ccr-nxcals6.cern.ch:19093,https://cs-ccr-nxcals7.cern.ch:19093,https://cs-ccr-nxcals8.cern.ch:19093")
-        return self._cern.lhc.nxcals.util.NxcalsSparkSession.sparkSession()
+
+        self._NxcalsSparkSession=self._cern.lhc.nxcals.util.NxcalsSparkSession
+        self._NxcalsSparkSession.setVerboseLogging(False);
+        return self._NxcalsSparkSession.sparkSession()
 
     def searchVariable(self,pattern,system="CMW"):
         out=[ k.variableName for k in \
                 self._variableService.findBySystemNameAndVariableNameLike(system,pattern) ]
         return sorted(out)
 
-    def getVariable(self,variable,t1,t2,system="CMW",output='dataframe'):
+    def getVariable(self,variable,t1,t2,system="CMW",output='data'):
         df=self.VariableQuery.system(system).startTime(t1).endTime(t2).variable(variable).buildDataset()
         if output is 'dataframe':
             return df
-        else:
-            return  [list(t.values()) for t in df.collect()]
+        elif output is 'data':
+            data=df.sort('nxcals_timestamp').select('nxcals_timestamp','nxcals_value').collect()
+            return  [(t.values()[0]/1e9,t.values()[1]) for t in data]
 
     def searchEntity(self,pattern):
         out=[]
