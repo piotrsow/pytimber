@@ -11,17 +11,58 @@ username=getpass.getuser()
 
 
 class NXCals(object):
+    @staticmethod
+    def create_certs():
+        print(f"Creating {certs}")
+        import urllib.request
+        url="https://cafiles.cern.ch/cafiles/certificates/CERN%20Grid%20Certification%20Authority.crt"
+        urllib.request.urlretrieve(url,filename="tmpcert")
+        cmd=f"keytool -import -alias cerngridcertificationauthority -file tmpcert -keystore nxcals_cacerts -storepass nxcals -noprompt"
+        print(cmd)
+        os.system(cmd)
+        os.rename("nxcals_cacerts",certs)
+        os.unlink("tmpcert")
+    def create_keytab():
+        if not os.path.isdir(nxcals_home):
+            os.mkdir(nxcals_home)
+        print(f"""Please use:
+        ktutil
+
+ktutil: add_entry -password -p {username}@CERN.CH -k 1 -e arcfour-hmac-md5
+ktutil: wkt {keytab}
+ktutil: exit
+kdestroy && kinit -f -r 5d -kt {keytab} {username}
+klist
+        """)
+
     def __init__(self,user=username,keytab=keytab,certs=certs):
+        """
+        Needs
+           user: default user name
+           keytab: default $HOME/.nxcals/keytab
+           certs: default $HOME/.nxcals/nxcals_cacerts
+        """
+
         if os.path.isfile(keytab):
             self._keytab=keytab
         else:
-            raise ValueError(f"Keytab file {keytab} does not exists")
+            try:
+                NXCals.create_keytab()
+            except Exception as ex:
+                print(ex)
+                raise ValueError(f"Keytab file {keytab} does not exists")
         if os.path.isfile(certs):
             self._certs=certs
         else:
-            raise ValueError(f"Certificate file {certs} does not exists")
+            try:
+                NXCals.create_certs()
+            except Exception as ex:
+                print(ex)
+                raise ValueError(f"Certificate file {certs} does not exists")
 
         self._user=user
+
+        # Start JVM and set basic hook
         import cmmnbuild_dep_manager
         self._mgr=cmmnbuild_dep_manager.Manager()
         self._jpype=self._mgr.start_jpype_jvm()
@@ -30,13 +71,26 @@ class NXCals(object):
         self._java=self._jpype.java
         self._System=self._java.lang.System
 
-        self.spark=self._get_spark()
+        # spark config
+        try:
+           self.spark=self._get_spark()
+        except self._jpype.JavaException as ex:
+            print(ex.message())
+            print(ex.stacktrace())
+            raise ex
 
+        # nxcals config
         self.builders=self._cern.nxcals.data.access.builders
         self.builders.FluentQuery
         self.builders.KeyValuesQuery
         self.builders.QueryData
         self.builders.VariableQuery
+
+        self._ServiceClientFactory=self._cern.nxcals.service.client.providers.ServiceClientFactory
+
+        self._variableService=self._ServiceClientFactory.createVariableService()
+        self._entityService=self._ServiceClientFactory.createEntityService()
+        self._systemService=self._ServiceClientFactory.createSystemService()
 
 
     @property
@@ -57,8 +111,32 @@ class NXCals(object):
         self._System.setProperty("javax.net.ssl.trustStorePassword", "nxcals")
         self._System.setProperty("kerberos.keytab", self._keytab)
         self._System.setProperty("kerberos.principal", self._user)
-        self._System.setProperty("service.url", "http://cs-ccr-nxcals6.cern.ch:19093")
+        self._System.setProperty("service.url", "https://cs-ccr-nxcals6.cern.ch:19093,https://cs-ccr-nxcals7.cern.ch:19093,https://cs-ccr-nxcals8.cern.ch:19093")
         return self._cern.lhc.nxcals.util.NxcalsSparkSession.sparkSession()
+
+    def searchVariable(self,pattern,system="CMW"):
+        out=[ k.variableName for k in \
+                self._variableService.findBySystemNameAndVariableNameLike(system,pattern) ]
+        return sorted(out)
+
+    def getVariable(self,variable,t1,t2,system="CMW",output='dataframe'):
+        df=self.VariableQuery.system(system).startTime(t1).endTime(t2).variable(variable).buildDataset()
+        if output is 'dataframe':
+            return df
+        else:
+            return  [list(t.values()) for t in df.collect()]
+
+    def searchEntity(self,pattern):
+        out=[]
+        for k in self._entityService.findByKeyValuesLike(pattern):
+            d=k.entityKeyValues
+            try:
+               data=(d['variable_name'],d['device'],d['property'])
+            except (NameError,TypeError) as ex:
+                print(ex)
+                data=k
+            out.append(data)
+        return out
 
 
 
