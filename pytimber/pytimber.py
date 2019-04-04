@@ -413,6 +413,9 @@ class LoggingDB(object):
     #        for v in variables:
     #            return self._ts.getJVMHeapSizeEstimationForDataInTimeWindow(v,ts1,ts2,None,None)
 
+    def getVariable(self,variable,t1,t2=None,unixtime=True,fundamental=None):
+        return self.get(variable,t1,t2,unixtime,fundamental)[variable]
+
     def get(self, pattern_or_list, t1, t2=None,
             fundamental=None, unixtime=True):
         """Query the database for a list of variables or for variables whose

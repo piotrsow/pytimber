@@ -1,6 +1,8 @@
 import os
 import getpass
 
+import numpy as np
+
 import cmmnbuild_dep_manager
 
 user_home= os.environ['HOME']
@@ -92,6 +94,8 @@ klist
         self._entityService=self._ServiceClientFactory.createEntityService()
         self._systemService=self._ServiceClientFactory.createSystemService()
 
+        self._SparkDataFrameConversions=self._cern.lhc.nxcals.util.SparkDataFrameConversions
+
 
     @property
     def DevicePropertyQuery(self):
@@ -127,8 +131,10 @@ klist
         if output is 'dataframe':
             return df
         elif output is 'data':
-            data=df.sort('nxcals_timestamp').select('nxcals_timestamp','nxcals_value').collect()
-            return  [(t.values()[0]/1e9,t.values()[1]) for t in data]
+            data=df.sort('nxcals_timestamp').select('nxcals_timestamp','nxcals_value')
+            ts=self._SparkDataFrameConversions.extractDoubleColumn(data,"nxcals_timestamp")
+            val=self._SparkDataFrameConversions.extractDoubleColumn(data,"nxcals_value")
+            return  np.array(ts[:]/1e9,dtype=float),np.array(val[:],dtype=float)
 
     def searchEntity(self,pattern):
         out=[]
