@@ -7,7 +7,10 @@ lst=db.searchVariable("LHC%BCT%INT%")
 t1='2018-05-23 00:05:54.500'
 t2='2018-05-23 00:06:54.500'
 
-df= db.getVariable('LHC.BCTFR.A6R4.B1:BEAM_INTENSITY',t1,t2)
+data= db.getVariable('LHC.BCTFR.A6R4.B1:BEAM_INTENSITY',t1,t2)
+df= db.getVariable('LHC.BCTFR.A6R4.B1:BEAM_INTENSITY',t1,t2,output='dataframe')
+
+df.collect()
 
 
 
@@ -57,3 +60,7 @@ data=df.collect()
 list(data[0].values())
 
 db._cern.nxcals.service.client.api.VariableService.findBySystemNameAndVariableNameLike("CMW","%I_MEAS%")
+
+# create certificate
+
+pytimber.NXCals.create_certs()
