@@ -127,14 +127,25 @@ klist
         return sorted(out)
 
     def getVariable(self,variable,t1,t2,system="CMW",output='data'):
-        df=self.VariableQuery.system(system).startTime(t1).endTime(t2).variable(variable).buildDataset()
-        if output is 'dataframe':
-            return df
-        elif output is 'data':
-            data=df.sort('nxcals_timestamp').select('nxcals_timestamp','nxcals_value')
+        ds=self.VariableQuery.system(system).startTime(t1).endTime(t2).variable(variable).buildDataset()
+        if output =='dataframe':
+            return ds
+        elif output == 'data':
+            return self.processVariable(ds)
+
+    def processVariable(self,ds):
+            ts_type=ds.dtypes()[1]._2()
+            val_type=ds.dtypes()[2]._2()
+            data=ds.sort('nxcals_timestamp').select('nxcals_timestamp','nxcals_value')
             ts=self._SparkDataFrameConversions.extractDoubleColumn(data,"nxcals_timestamp")
-            val=self._SparkDataFrameConversions.extractDoubleColumn(data,"nxcals_value")
-            return  np.array(ts[:]/1e9,dtype=float),np.array(val[:],dtype=float)
+            if val_type == "FloatType":
+                val=self._SparkDataFrameConversions.extractDoubleColumn(data,"nxcals_value")
+            elif val_type == "LongType":
+                val=self._SparkDataFrameConversions.extractLongColumn(data,"nxcals_value")
+            else :
+                val=self._SparkDataFrameConversions.extractColumn(data,"nxcals_value")
+            return  np.array(ts[:]/1e9,dtype=float),np.array(val[:])
+
 
     def searchEntity(self,pattern):
         out=[]
