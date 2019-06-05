@@ -138,7 +138,7 @@ klist
             val_type=ds.dtypes()[2]._2()
             data=ds.sort('nxcals_timestamp').select('nxcals_timestamp','nxcals_value')
             ts=self._SparkDataFrameConversions.extractDoubleColumn(data,"nxcals_timestamp")
-            if val_type == "FloatType":
+            if val_type == "FloatType" or val_type == "DoubleType":
                 val=self._SparkDataFrameConversions.extractDoubleColumn(data,"nxcals_value")
             elif val_type == "LongType":
                 val=self._SparkDataFrameConversions.extractLongColumn(data,"nxcals_value")
