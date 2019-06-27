@@ -2,19 +2,23 @@ import pytimber
 
 db=pytimber.NXCals()
 
+
+### High level API
+
 lst=db.searchVariable("LHC%BCT%INT%")
+print(lst)
 
 t1='2018-05-23 00:05:54.500'
 t2='2018-05-23 00:06:54.500'
 
 ts,val= db.getVariable('LHC.BCTFR.A6R4.B1:BEAM_INTENSITY',t1,t2)
-df= db.getVariable('LHC.BCTFR.A6R4.B1:BEAM_INTENSITY',t1,t2,output='dataframe')
 
-df.collect()
+### Spark object
 
-cals=pytimber.LoggingDB()
-ts2,val2=db.getVariable('LHC.BCTFR.A6R4.B1:BEAM_INTENSITY',t1,t2)
 
+ds= db.getVariable('LHC.BCTFR.A6R4.B1:BEAM_INTENSITY',t1,t2,output='spark')
+rows=ds.select('nxcals_timestamp','nxcals_value').sort('nxcals_timestamp')
+ts,val1=list(zip(*[(row.get(0)/1000.,row.get(1)) for row in rows.collect()]))
 
 
 #basic query
@@ -67,3 +71,32 @@ db._cern.nxcals.service.client.api.VariableService.findBySystemNameAndVariableNa
 # create certificate
 
 pytimber.NXCals.create_certs()
+
+
+# device
+db.searchDevice('%RSF2%')
+t1="2018-06-15 23:00:00.000"
+t2="2018-06-15 23:01:00.000"
+
+ds=db.DevicePropertyQuery.system('CMW')\
+    .startTime(t1).endTime(t2)\
+    .entity().device('RPMBB.UA87.RSF2.A81B1').property('SUB_51').buildDataset()
+
+ds.printSchema()
+rows=ds.select('acqStamp', 'I_MEAS').orderBy('acqStamp', ascending=False).na().drop()
+[(r.get(0),r.get(1)) for r in rows.collect()]
+
+ts,val=db.getVariable('RPMBB.UA87.RSF2.A81B1:I_MEAS',t1,t2)
+
+
+# simple comparison
+import pytimber
+
+t1="2018-06-15 23:00:00.000"
+t2="2018-06-15 23:01:00.000"
+vname="RPMBB.UA87.RSF2.A81B1:I_MEAS"
+cals=pytimber.LoggingDB()
+print(cals.getVariable(vname,t1,t2))
+nxcals=pytimber.NXCals()
+print(nxcals.getVariable(vname,t1,t2))
+

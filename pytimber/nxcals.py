@@ -1,5 +1,6 @@
 import os
 import getpass
+import logging
 
 import numpy as np
 
@@ -37,7 +38,7 @@ kdestroy && kinit -f -r 5d -kt {keytab} {username}
 klist
         """)
 
-    def __init__(self,user=username,keytab=keytab,certs=certs):
+    def __init__(self,user=username,keytab=keytab,certs=certs,loglevel=logging.WARNING):
         """
         Needs
            user: default user name
@@ -45,6 +46,13 @@ klist
            certs: default $HOME/.nxcals/nxcals_cacerts
         """
 
+        # Configure logging
+        logging.basicConfig()
+        self._log = logging.getLogger(__name__)
+        if loglevel is not None:
+            self._log.setLevel(loglevel)
+
+        # Setup keytab and certs
         if os.path.isfile(keytab):
             self._keytab=keytab
         else:
@@ -66,7 +74,7 @@ klist
 
         # Start JVM and set basic hook
         import cmmnbuild_dep_manager
-        self._mgr=cmmnbuild_dep_manager.Manager()
+        self._mgr=cmmnbuild_dep_manager.Manager('pytimber', loglevel)
         self._jpype=self._mgr.start_jpype_jvm()
         self._org=self._jpype.JPackage('org')
         self._cern=self._jpype.JPackage('cern')
@@ -128,7 +136,7 @@ klist
 
     def getVariable(self,variable,t1,t2,system="CMW",output='data'):
         ds=self.VariableQuery.system(system).startTime(t1).endTime(t2).variable(variable).buildDataset()
-        if output =='dataframe':
+        if output =='spark':
             return ds
         elif output == 'data':
             return self.processVariable(ds)
@@ -136,7 +144,7 @@ klist
     def processVariable(self,ds):
             ts_type=ds.dtypes()[1]._2()
             val_type=ds.dtypes()[2]._2()
-            data=ds.sort('nxcals_timestamp').select('nxcals_timestamp','nxcals_value')
+            data=ds.sort('nxcals_timestamp').select('nxcals_timestamp','nxcals_value').na().drop()
             ts=self._SparkDataFrameConversions.extractDoubleColumn(data,"nxcals_timestamp")
             if val_type == "FloatType" or val_type == "DoubleType":
                 val=self._SparkDataFrameConversions.extractDoubleColumn(data,"nxcals_value")
@@ -159,5 +167,12 @@ klist
             out.append(data)
         return out
 
+    def searchDevice(self,pattern):
+        out=[]
+        for k in self._entityService.findByKeyValuesLike(pattern):
+            d=k.entityKeyValues
+            if d['device'] is not None:
+                out.append( (d['device'],d['property']) )
+        return out
 
 
