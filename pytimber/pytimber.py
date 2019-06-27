@@ -70,15 +70,15 @@ class LoggingDB(object):
         print('ERROR: jpype is note defined!')
 
     def __init__(self, appid='LHC_MD_ABP_ANALYSIS', clientid='BEAM PHYSICS',
-                 source='all', loglevel=None):
+                 source='all', loglevel=logging.WARNING):
         # Configure logging
-        logging.basicConfig()
+        #logging.basicConfig()
         self._log = logging.getLogger(__name__)
         if loglevel is not None:
             self._log.setLevel(loglevel)
 
         # Start JVM
-        mgr = cmmnbuild_dep_manager.Manager('pytimber', logging.WARNING)
+        mgr = cmmnbuild_dep_manager.Manager('pytimber', loglevel)
         mgr.start_jpype_jvm()
 
         # log4j config
@@ -414,7 +414,7 @@ class LoggingDB(object):
     #            return self._ts.getJVMHeapSizeEstimationForDataInTimeWindow(v,ts1,ts2,None,None)
 
     def getVariable(self,variable,t1,t2=None,unixtime=True,fundamental=None):
-        return self.get(variable,t1,t2,unixtime,fundamental)[variable]
+        return self.get(variable,t1,t2,unixtime=unixtime,fundamental=fundamental)[variable]
 
     def get(self, pattern_or_list, t1, t2=None,
             fundamental=None, unixtime=True):
