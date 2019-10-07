@@ -63,7 +63,7 @@ def int2keyword(n):
     s = (n==0) and "a" or ""
     while n!=0:
         s = chr(n % 26 +97) + s
-        n = n / 26
+        n = n // 26
     return s
 
 def subdict(d,names):
