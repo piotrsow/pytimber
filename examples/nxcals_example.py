@@ -100,3 +100,33 @@ print(cals.getVariable(vname,t1,t2))
 nxcals=pytimber.NXCals()
 print(nxcals.getVariable(vname,t1,t2))
 
+
+# from doc
+import time
+import numpy as np
+nxcals=pytimber.NXCals()
+start=time.time()
+ds=nxcals.DevicePropertyQuery\
+        .system("CMW")\
+        .startTime("2018-11-27 01:00:00.000")\
+        .endTime("2018-11-27 01:10:00.000")\
+        .entity()\
+        .parameter("LHC.BQ.GATED.B1/Measurement")\
+        .buildDataset()\
+        .sort('acqStamp')\
+        .select("acqStamp","lastRawDataH")\
+        .na().drop()
+print(f"Time elapsed {time.time()-start} seconds")
+rows=ds.limit(10).collect()
+print(f"Time elapsed {time.time()-start} seconds")
+ts0=np.array([row.getAs("acqStamp") for row in rows])/1e9
+print(f"Time elapsed {time.time()-start} seconds")
+data0=np.array([np.array(row.getAs("lastRawDataH").getList(0)) for row in rows])
+print(f"Time elapsed {time.time()-start} seconds")
+print(f"ts0: {ts0.shape}; data0: {data0.shape}")
+
+t1="2018-11-27 01:00:00.000"
+t2="2018-11-27 01:10:00.000"
+ts,val=nxcals.getVariable('LHC.BQBBQ.CONTINUOUS.B2:ACQ_DATA_H',t1,t2)
+
+list(val.getAs('nxcals_value').getList(0))
