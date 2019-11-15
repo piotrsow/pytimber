@@ -18,18 +18,16 @@ __version__ = "2.7.3"
 __cmmnbuild_deps__ = [
     "accsoft-cals-extr-client",
     "accsoft-cals-extr-domain",
-    "lhc-commons-cals-utils",
+    "pytimber-utils",
+#    "lhc-commons-cals-utils",
 #    "slf4j-log4j12",
 #    "slf4j-api",
 #    "log4j",
-    "lhc-nxcals-extraction-utils",
-#    "nxcals-extraction-starter",
-#    {'product':"spark-core_2.11","version":"2.4.0"},
-#    {'product':"spark-sql_2.11","version":"2.4.0"},
-#    {'product':"spark-yarn_2.11","version":"2.4.0"},
-#    "nxcals-data-access",
-#    "nxcals-common-spark",
+#    "lhc-nxcals-extraction-utils",
 #    "spring-boot-starter",
+#    "nxcals-backport-api",
+#    "nxcals-extraction-starter",
+#    "nxcals-hadoop-pro-config",
 ]
 
 nxcals=[

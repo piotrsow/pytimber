@@ -213,7 +213,7 @@ class LoggingDB(object):
         if dataset.isEmpty():
             return (np.array([], dtype=float), np.array([], dtype=float))
 
-        PrimitiveDataSets = jpype.JPackage('cern').lhc.commons.cals.PrimitiveDataSets
+        PrimitiveDataSets = jpype.JPackage('org').pytimber.utils.PrimitiveDataSets
         timestamps = np.array(PrimitiveDataSets.unixTimestamps(dataset)[:], dtype=float)
         if not unixtime:
             timestamps = np.array([datetime.datetime.fromtimestamp(t) for t in timestamps])
