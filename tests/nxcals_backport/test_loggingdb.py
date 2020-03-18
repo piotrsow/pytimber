@@ -1,28 +1,110 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import pytest
+import jpype
 
 
-@pytest.mark.core
-def test_search(nxcals):
-    variables = nxcals.search("HX:BETA%")
-    assert "HX:BETASTAR_IP1" in variables
-    assert len(variables) == 4
+@pytest.mark.unit
+class TestUnit:
+
+    def test_timestamp(self, nxcals):
+        import time
+
+        now = time.time()
+        ts_now = nxcals.toTimestamp(now)
+        now2 = nxcals.fromTimestamp(ts_now, unixtime=True)
+        dt_now2 = nxcals.fromTimestamp(ts_now, unixtime=False)
+        assert now == now2
+        assert str(ts_now)[:25] == dt_now2.strftime("%Y-%m-%d %H:%M:%S.%f")[:25]
+
+        time_str = "2015-10-12 12:12:32.453255123"
+        ta = nxcals.toTimestamp(time_str)
+        assert ta.toLocaleString() == "Oct 12, 2015 12:12:32 PM"
+        unix = nxcals.fromTimestamp(ta, unixtime=True)
+        assert unix == 1444644752.4532552
+        assert (
+                time.strftime("%b %-d, %Y %-I:%M:%S %p", time.localtime(unix))
+                == "Oct 12, 2015 12:12:32 PM"
+        )
+
+    @staticmethod
+    def _search(nxcals, pattern):
+        return nxcals.search(pattern)
+
+    @pytest.mark.core
+    def test_should_search(self, monkeypatch, nxcals):
+        def mockreturn(pattern):
+            _Variable = jpype.JPackage(
+                "cern"
+            ).nxcals.api.backport.domain.core.metadata.Variable
+
+            var_list = []
+            for i in [1, 2, 3]:
+                var_list.append(_Variable.builder().variableName(pattern.replace('%', str(i))).build())
+            return var_list
+
+        monkeypatch.setattr(nxcals, "getVariables", mockreturn)
+        variable_list = TestUnit._search(nxcals, 'VARIABLE%')
+
+        assert 'VARIABLE1' in variable_list
 
 
-def test_get_simple(nxcals):
-    t1 = "2015-05-13 12:00:00.000"
-    t2 = "2015-05-15 00:00:00.000"
-    data = nxcals.get("HX:FILLN", t1, t2)
+@pytest.mark.integration
+class TestIntegration:
 
-    t, v = data["HX:FILLN"]
-    assert len(t) == 6
-    assert len(v) == 6
+    @pytest.mark.core
+    @pytest.mark.parametrize("pattern, variable_name, count", [("HX:BETA%", "HX:BETASTAR_IP1", 4)])
+    def test_search(self, nxcals, pattern, variable_name, count):
+        variables = nxcals.search(pattern)
+        assert variable_name in variables
+        assert len(variables) == count
 
-    assert t[0] == 1431523684.764
-    assert v[0] == 3715.0
+    class TestGet:
 
+        @pytest.mark.core
+        @pytest.mark.parametrize("t1, t2, variable, count, ts, value", [
+            ("2015-05-13 12:00:00.000", "2015-05-15 00:00:00.000", "HX:FILLN", 6, 1431523684.764, 3715.0)])
+        def test_get_simple(self, nxcals, t1, t2, variable, count, ts, value):
+            data = nxcals.get(variable, t1, t2)
+
+            t, v = data[variable]
+            assert len(t) == count
+            assert len(v) == count
+
+            assert t[0] == ts
+            assert v[0] == value
+
+        import datetime
+
+        @pytest.mark.parametrize("t1, t2, variable, dt",
+                                 [("2015-05-13 12:00:00.000", "2015-05-15 00:00:00.000", "HX:FILLN",
+                                   datetime.datetime(2015, 5, 13, 15, 28, 4, 764000))])
+        def test_get_unixtime(self, nxcals, t1, t2, variable, dt):
+            data = nxcals.get(variable, t1, t2, unixtime=False)
+            t, v = data[variable]
+
+            assert t[0] == dt
+
+        @pytest.mark.parametrize("t1, t2, variable, count",
+                                 [("2015-05-13 12:00:00.000", "2015-05-13 12:00:01.000",
+                                   "LHC.BQBBQ.CONTINUOUS_HS.B1:ACQ_DATA_H", 4096)])
+        def test_get_vectornumeric(self, nxcals, t1, t2, variable, count):
+            data = nxcals.get(variable, t1, t2)
+
+            t, v = data[variable]
+
+            for vv in v:
+                assert len(vv) == count
+
+    def test_get_aligned(self, nxcals):
+        # TODO
+        assert True
+
+    @pytest.mark.parametrize("pattern, variable, description",
+                             [("%:LUMI_TOT_INST", "ATLAS:LUMI_TOT_INST",
+                               "ATLAS: Total instantaneous luminosity summed over all bunches")])
+    def test_getdescription(self, nxcals, pattern, variable, description):
+        descriptions = nxcals.getDescription(pattern)
+
+        assert descriptions[variable] == description
 
 def test_getvariable(nxcals):
     t1 = "2015-05-13 12:00:00.000"
@@ -34,27 +116,6 @@ def test_getvariable(nxcals):
 
     assert t[0] == 1431523684.764
     assert v[0] == 3715.0
-
-
-def test_get_unixtime(nxcals):
-    t1 = "2015-05-13 12:00:00.000"
-    t2 = "2015-05-15 00:00:00.000"
-    data = nxcals.get("HX:FILLN", t1, t2, unixtime=False)
-    t, v = data["HX:FILLN"]
-    import datetime
-
-    assert t[0] == datetime.datetime(2015, 5, 13, 15, 28, 4, 764000)
-
-
-def test_get_vectornumeric(nxcals):
-    t1 = "2015-05-13 12:00:00.000"
-    t2 = "2015-05-13 12:00:01.000"
-    data = nxcals.get("LHC.BQBBQ.CONTINUOUS_HS.B1:ACQ_DATA_H", t1, t2)
-
-    t, v = data["LHC.BQBBQ.CONTINUOUS_HS.B1:ACQ_DATA_H"]
-
-    for vv in v:
-        assert len(vv) == 4096
 
 
 def test_get_vectorstring(nxcals):
@@ -84,38 +145,9 @@ def test_getscaled(nxcals):
     assert (v[:4] - np.array([1174144.0, 1172213.0, 1152831.0])).sum() == 0
 
 
-def test_timestamp(nxcals):
-    import time
-
-    now = time.time()
-    ts_now = nxcals.toTimestamp(now)
-    now2 = nxcals.fromTimestamp(ts_now, unixtime=True)
-    dt_now2 = nxcals.fromTimestamp(ts_now, unixtime=False)
-    assert now == now2
-    assert str(ts_now)[:25] == dt_now2.strftime("%Y-%m-%d %H:%M:%S.%f")[:25]
-
-    time_str = "2015-10-12 12:12:32.453255123"
-    ta = nxcals.toTimestamp(time_str)
-    assert ta.toLocaleString() == "Oct 12, 2015 12:12:32 PM"
-    unix = nxcals.fromTimestamp(ta, unixtime=True)
-    assert unix == 1444644752.4532552
-    assert (
-        time.strftime("%b %-d, %Y %-I:%M:%S %p", time.localtime(unix))
-        == "Oct 12, 2015 12:12:32 PM"
-    )
-
-
 def test_getunit(nxcals):
     units = nxcals.getUnit("%:LUMI_TOT_INST")
     assert units["ATLAS:LUMI_TOT_INST"] == "Hz/ub"
-
-
-def test_getdescription(nxcals):
-    units = nxcals.getDescription("%:LUMI_TOT_INST")
-    assert (
-        units["ATLAS:LUMI_TOT_INST"]
-        == "ATLAS: Total instantaneous luminosity summed over all bunches"
-    )
 
 
 def test_fundamentals(nxcals):

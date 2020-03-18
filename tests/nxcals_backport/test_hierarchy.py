@@ -2,19 +2,19 @@ import pytest
 import functools
 
 
-def _get_v(nxcals):
-    return nxcals.tree.get_vars()
-
-
 @pytest.mark.unit
 class TestUnit:
+
+    @staticmethod
+    def _get_v(nxcals):
+        return nxcals.tree.get_vars()
 
     def test_should_get_variable_list(self, monkeypatch, nxcals):
         def mockreturn():
             return ["AAA", "BBB", "CCC"]
 
         monkeypatch.setattr(nxcals.tree, "get_vars", mockreturn)
-        variable_list = _get_v(nxcals)
+        variable_list = TestUnit._get_v(nxcals)
 
         assert len(variable_list) == 3
 
