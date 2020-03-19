@@ -74,18 +74,17 @@ class TestIntegration:
 
         import datetime
 
-        @pytest.mark.parametrize("t1, t2, variable, dt",
-                                 [("2015-05-13 12:00:00.000", "2015-05-15 00:00:00.000", "HX:FILLN",
-                                   datetime.datetime(2015, 5, 13, 15, 28, 4, 764000))])
+        @pytest.mark.parametrize("t1, t2, variable, dt", [("2015-05-13 12:00:00.000", "2015-05-15 00:00:00.000",
+                                                           "HX:FILLN",
+                                                           datetime.datetime(2015, 5, 13, 15, 28, 4, 764000))])
         def test_get_unixtime(self, nxcals, t1, t2, variable, dt):
             data = nxcals.get(variable, t1, t2, unixtime=False)
             t, v = data[variable]
 
             assert t[0] == dt
 
-        @pytest.mark.parametrize("t1, t2, variable, count",
-                                 [("2015-05-13 12:00:00.000", "2015-05-13 12:00:01.000",
-                                   "LHC.BQBBQ.CONTINUOUS_HS.B1:ACQ_DATA_H", 4096)])
+        @pytest.mark.parametrize("t1, t2, variable, count", [
+            ("2015-05-13 12:00:00.000", "2015-05-13 12:00:01.000", "LHC.BQBBQ.CONTINUOUS_HS.B1:ACQ_DATA_H", 4096)])
         def test_get_vectornumeric(self, nxcals, t1, t2, variable, count):
             data = nxcals.get(variable, t1, t2)
 
@@ -98,72 +97,102 @@ class TestIntegration:
         # TODO
         assert True
 
-    @pytest.mark.parametrize("pattern, variable, description",
-                             [("%:LUMI_TOT_INST", "ATLAS:LUMI_TOT_INST",
-                               "ATLAS: Total instantaneous luminosity summed over all bunches")])
+    @pytest.mark.parametrize("pattern, variable, description", [
+        ("%:LUMI_TOT_INST", "ATLAS:LUMI_TOT_INST", "ATLAS: Total instantaneous luminosity summed over all bunches")])
     def test_getdescription(self, nxcals, pattern, variable, description):
         descriptions = nxcals.getDescription(pattern)
 
         assert descriptions[variable] == description
 
-def test_getvariable(nxcals):
-    t1 = "2015-05-13 12:00:00.000"
-    t2 = "2015-05-15 00:00:00.000"
-    t, v = nxcals.getVariable("HX:FILLN", t1, t2)
+    class TestFundamentals:
 
-    assert len(t) == 6
-    assert len(v) == 6
+        @pytest.mark.parametrize("variable, t1, t2, fundamental, value", [
+            ("CPS.TGM:USER", "2015-05-15 12:00:00.000", "2015-05-15 12:01:00.000", "CPS:%:SFTPRO%", "SFTPRO2")])
+        def test_filter_by_fundamentals(self, nxcals, variable, t1, t2, fundamental, value):
+            t, v = nxcals.getVariable(variable, t1, t2, fundamental=fundamental)
+            assert v[0] == value
 
-    assert t[0] == 1431523684.764
-    assert v[0] == 3715.0
+        def test_get_fundamentals(self, nxcals):
+            # TODO
+            assert True
 
+        def test_search_fundamental(self, nxcals):
+            # TODO
+            assert True
 
-def test_get_vectorstring(nxcals):
-    t1 = "2016-03-28 00:00:00.000"
-    t2 = "2016-03-28 23:59:59.999"
+    class TestLHC:
 
-    t, v = nxcals.getVariable("LHC.BOFSU:BPM_NAMES_H", t1, t2)
-    assert v[0][123] == "BPM.16L3.B1"
+        def test_get_intervals(self, nxcals):
+            # TODO
+            assert True
 
+        def test_get_fill_data(self, nxcals):
+            # TODO
+            assert True
 
-def test_getscaled(nxcals):
-    t1 = "2015-05-15 12:00:00.000"
-    t2 = "2015-05-15 15:00:00.000"
-    data = nxcals.getScaled(
-        "MSC01.ZT8.107:COUNTS",
-        t1,
-        t2,
-        scaleInterval="HOUR",
-        scaleAlgorithm="SUM",
-        scaleSize="1",
-    )
+        def test_get_fill_by_time(self, nxcals):
+            # TODO
+            assert True
 
-    t, v = data["MSC01.ZT8.107:COUNTS"]
+    def test_get_metadata(self, nxcals):
+        # TODO
+        assert True
 
     import numpy as np
 
-    assert (v[:4] - np.array([1174144.0, 1172213.0, 1152831.0])).sum() == 0
+    @pytest.mark.parametrize("variable, t1, t2, scale_interval, scale_algorithm, scale_size, result", [
+        ("MSC01.ZT8.107:COUNTS", "2015-05-15 12:00:00.000", "2015-05-15 15:00:00.000", "HOUR", "SUM", "1",
+         np.array([1174144.0, 1172213.0, 1152831.0]))])
+    def test_getscaled(self, nxcals, variable, t1, t2, scale_interval, scale_algorithm, scale_size, result):
+        data = nxcals.getScaled(
+            variable, t1, t2,
+            scaleInterval=scale_interval,
+            scaleAlgorithm=scale_algorithm,
+            scaleSize=scale_size,
+        )
 
+        t, v = data[variable]
 
-def test_getunit(nxcals):
-    units = nxcals.getUnit("%:LUMI_TOT_INST")
-    assert units["ATLAS:LUMI_TOT_INST"] == "Hz/ub"
+        assert (v[:4] - result).sum() == 0
 
+    @pytest.mark.parametrize("variable, t1, t2, min_timestamp, std_deviation", [
+        ("LHC.BOFSU:EIGEN_FREQ_2_B1", "2016-03-01 00:00:00.000", "2016-04-03 00:00:00.000",
+         1457962796.971, 0.00401594)])
+    def test_getstats(self, nxcals, variable, t1, t2, min_timestamp, std_deviation):
+        stat = nxcals.getStats(variable, t1, t2)[variable]
 
-def test_fundamentals(nxcals):
-    fundamental = "CPS:%:SFTPRO%"
-    t1 = "2015-05-15 12:00:00.000"
-    t2 = "2015-05-15 12:01:00.000"
-    t, v = nxcals.getVariable("CPS.TGM:USER", t1, t2, fundamental=fundamental)
-    assert v[0] == "SFTPRO2"
+        assert stat.MinTstamp == min_timestamp
+        assert stat.StandardDeviationValue == std_deviation
 
+    @pytest.mark.parametrize("pattern, variable, unit", [("%:LUMI_TOT_INST", "ATLAS:LUMI_TOT_INST", "Hz/ub")])
+    def test_getunit(self, nxcals, pattern, variable, unit):
+        units = nxcals.getUnit(pattern)
+        assert units[variable] == unit
 
-def test_getstats(nxcals):
-    t1 = "2016-03-01 00:00:00.000"
-    t2 = "2016-04-03 00:00:00.000"
+    class TestVariable:
 
-    vn = "LHC.BOFSU:EIGEN_FREQ_2_B1"
-    stat = nxcals.getStats(vn, t1, t2)[vn]
+        @pytest.mark.parametrize("variable, t1, t2, tstamp_count, value_count, tstamp, value", [
+            ("HX:FILLN", "2015-05-13 12:00:00.000", "2015-05-15 00:00:00.000", 6, 6,
+             1431523684.764, 3715.0)])
+        def test_getvariable(self, nxcals, variable, t1, t2, tstamp_count, value_count, tstamp, value):
+            t, v = nxcals.getVariable(variable, t1, t2)
 
-    assert stat.MinTstamp == 1457962796.971
-    assert stat.StandardDeviationValue == 0.00401594
+            assert len(t) == tstamp_count
+            assert len(v) == value_count
+
+            assert t[0] == tstamp
+            assert v[0] == value
+
+        def test_getvariables(self, nxcals):
+            # TODO
+            assert True
+
+        def test_getvariableslist(self, nxcals):
+            # TODO
+            assert True
+
+        @pytest.mark.parametrize("variable, t1, t2, idx1, idx2, value", [
+            ("LHC.BOFSU:BPM_NAMES_H", "2016-03-28 00:00:00.000", "2016-03-28 23:59:59.999", 0, 123, "BPM.16L3.B1")])
+        def test_get_vectorstring(self, nxcals, variable, t1, t2, idx1, idx2, value):
+            t, v = nxcals.getVariable(variable, t1, t2)
+            assert v[idx1][idx2] == value
