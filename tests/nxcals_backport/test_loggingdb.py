@@ -155,14 +155,20 @@ class TestIntegration:
 
         assert (v[:4] - result).sum() == 0
 
+    @staticmethod
+    def is_close(float_a, float_b, prec):
+        if round(float_a, prec) == round(float_b, prec):
+            return True
+        return False
+
     @pytest.mark.parametrize("variable, t1, t2, min_timestamp, std_deviation", [
         ("LHC.BOFSU:EIGEN_FREQ_2_B1", "2016-03-01 00:00:00.000", "2016-04-03 00:00:00.000",
-         1457962796.971, 0.00401594)])
+         1457962796.972, 0.00401594)])
     def test_getstats(self, nxcals, variable, t1, t2, min_timestamp, std_deviation):
         stat = nxcals.getStats(variable, t1, t2)[variable]
 
         assert stat.MinTstamp == min_timestamp
-        assert stat.StandardDeviationValue == std_deviation
+        assert self.is_close(stat.StandardDeviationValue, std_deviation, 8)
 
     @pytest.mark.parametrize("pattern, variable, unit", [("%:LUMI_TOT_INST", "ATLAS:LUMI_TOT_INST", "Hz/ub")])
     def test_getunit(self, nxcals, pattern, variable, unit):
