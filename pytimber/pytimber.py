@@ -123,9 +123,13 @@ class LoggingDB(object):
             self._md = builder.createMetaService()
             self._ts = builder.createTimeseriesService()
             self._FillService = builder.createLHCFillService()
+            self.tree = Hierarchy("root", None, None, self._md)
             self._VariableDataType = jpype.JPackage(
                 "cern"
             ).nxcals.api.backport.domain.core.constants.VariableDataType
+            self._BeamModeValue = jpype.JPackage(
+                "cern"
+            ).nxcals.api.backport.domain.core.constants.BeamModeValue
         else:
             # Data source preferences
             DataLocPrefs = jpype.JPackage(
@@ -149,6 +153,9 @@ class LoggingDB(object):
             self._VariableDataType = jpype.JPackage(
                 "cern"
             ).accsoft.cals.extr.domain.core.constants.VariableDataType
+            self._BeamModeValue = jpype.JPackage(
+                "cern"
+            ).accsoft.cals.extr.domain.core.constants.BeamModeValue
 
     def toTimestamp(self, t):
         Timestamp = jpype.java.sql.Timestamp
@@ -828,9 +835,7 @@ class LoggingDB(object):
         ts1 = self.toTimestamp(t1)
         ts2 = self.toTimestamp(t2)
 
-        BeamModeValue = jpype.JPackage(
-            "cern"
-        ).accsoft.cals.extr.domain.core.constants.BeamModeValue
+        BeamModeValue = self._BeamModeValue
 
         if beam_modes is None:
             fills = self._FillService.getLHCFillsAndBeamModesInTimeWindow(

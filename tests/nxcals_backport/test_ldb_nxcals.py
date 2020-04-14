@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 import jpype
 
@@ -167,26 +169,52 @@ class TestIntegration:
             )
             assert v[0] == value
 
-        def test_get_fundamentals(self, nxcals):
-            # TODO
-            assert True
+        @pytest.mark.parametrize("t1, t2, pattern, value", [
+            ("2018-10-17 15:00:00.000", "2018-10-17 15:05:00.000", "CPS:%:%", "CPS:AD:AD")])
+        def test_get_fundamentals(self, nxcals, t1, t2, pattern, value):
+            fundamentals = nxcals.getFundamentals(t1, t2, pattern)
+            assert fundamentals[0] == value
 
-        def test_search_fundamental(self, nxcals):
-            # TODO
-            assert True
+        @pytest.mark.parametrize("t1, t2, pattern, value, length", [
+            ("2018-10-17 05:15:00.000", "2018-10-17 05:16:00.000", "CPS:%:%", "CPS:EAST_NORTH:EAST2", 5)])
+        def test_search_fundamental(self, nxcals, t1, t2, pattern, value, length):
+            fundamentals = nxcals.searchFundamental(pattern, t1, t2)
+            assert fundamentals[0] == value
+            assert len(fundamentals) == length
 
     class TestLHC:
-        def test_get_intervals(self, nxcals):
-            # TODO
-            assert True
 
-        def test_get_fill_data(self, nxcals):
-            # TODO
-            assert True
+        @pytest.mark.parametrize("start_time, end_time, mode1, mode2, int_cnt, first_fill, int_start, int_end", [
+            ("2018-05-01 00:00:00.000", "2018-06-01 00:00:00.000", "SETUP", "STABLE", 39, 6628,
+             "2018-04-30 17:34:13", "2018-05-01 07:09:02")])
+        def test_get_intervals(self, nxcals, start_time, end_time, mode1, mode2, int_cnt, first_fill, int_start,
+                               int_end):
+            intervals = nxcals.getIntervalsByLHCModes(nxcals.toTimestamp(start_time), nxcals.toTimestamp(end_time),
+                                                      mode1, mode2)
+            assert len(intervals) == int_cnt
+            assert intervals[0][0] == first_fill
+            assert datetime.datetime.utcfromtimestamp(intervals[0][1]).strftime('%Y-%m-%d %H:%M:%S') == int_start
+            assert datetime.datetime.utcfromtimestamp(intervals[0][2]).strftime('%Y-%m-%d %H:%M:%S') == int_end
 
-        def test_get_fill_by_time(self, nxcals):
-            # TODO
-            assert True
+        @pytest.mark.parametrize("fill_nr, fill_start_time, fill_first_mode, modes_count", [
+            (6629, "2018-05-01 07:14:02", "RAMPDOWN", 12)])
+        def test_get_fill_data(self, nxcals, fill_nr, fill_start_time, fill_first_mode, modes_count):
+            fill_data = nxcals.getLHCFillData(fill_nr)
+
+            assert datetime.datetime.utcfromtimestamp(fill_data['startTime']).strftime(
+                '%Y-%m-%d %H:%M:%S') == fill_start_time
+            assert fill_data['beamModes'][0]['mode'] == fill_first_mode
+            assert fill_data['beamModes'][0]['startTime'] == fill_data['startTime']
+
+            assert len(fill_data['beamModes']) == modes_count
+
+        @pytest.mark.parametrize("start_time, end_time, beam_modes, fills_cnt, first_fill, modes_cnt", [
+            ("2018-05-01 00:00:00.000", "2018-06-01 00:00:00.000", "NOBEAM, STABLE", 27, 6630, 7)])
+        def test_get_fill_by_time(self, nxcals, start_time, end_time, beam_modes, fills_cnt, first_fill, modes_cnt):
+            fills = nxcals.getLHCFillsByTime(start_time, end_time, beam_modes)
+            assert len(fills) == fills_cnt
+            assert fills[0]['fillNumber'] == first_fill
+            assert len(fills[0]['beamModes']) == modes_cnt
 
     def test_get_metadata(self, nxcals):
         # TODO
@@ -300,12 +328,17 @@ class TestIntegration:
             assert t[0] == tstamp
             assert v[0] == value
 
-        def test_getvariables(self, nxcals):
-            # TODO
-            assert True
+        @pytest.mark.parametrize("pattern, var_cnt", [
+            ("%LUMI%INST", 10)])
+        def test_get_variables_with_name_like_pattern(self, nxcals, pattern, var_cnt):
+            variables = nxcals.getVariableSet(pattern)
+            assert len (variables) == var_cnt
 
-        def test_getvariableslist(self, nxcals):
+        @pytest.mark.parametrize("varlist", [
+            ("")])
+        def test_get_variables_with_name_in_list(self, nxcals, varlist):
             # TODO
+            variables = nxcals.getVariableSet(varlist)
             assert True
 
         @pytest.mark.parametrize(
