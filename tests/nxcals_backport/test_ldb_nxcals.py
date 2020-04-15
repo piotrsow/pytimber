@@ -129,8 +129,12 @@ class TestIntegration:
             for vv in v:
                 assert len(vv) == count
 
-    def test_get_aligned(self, nxcals):
+    @pytest.mark.parametrize("pattern_or_list, start_time, end_time", [
+        ("%:LUMI_TOT_INST", "2018-10-17 15:00:00.000", "2018-10-17 15:05:00.000")])
+    def test_get_aligned(self, nxcals, pattern_or_list, start_time, end_time):
         # TODO
+
+        aligned_data = nxcals.getAligned(pattern_or_list, start_time, end_time)
         assert True
 
     @pytest.mark.parametrize(
@@ -260,6 +264,38 @@ class TestIntegration:
 
         assert (v[:4] - result).sum() == 0
 
+    @pytest.mark.parametrize(
+        "variables , t1, t2, scale_interval, scale_algorithm, scale_size, result", [
+            (["IP.NSRCGEN:BIASDISCAQNI", "IP.NSRCGEN:BIASDISCAQNV"],
+                "2018-12-10 00:00:00.000", "2018-12-10 01:00:00.000", "MINUTE", "REPEAT", "1",
+                    np.array([-4.320000171661377, -3.7200000286102295, -4.769999980926514, -4.619999885559082]),
+            )
+        ],
+    )
+    def test_getscaled_for_list(
+            self,
+            nxcals,
+            variables,
+            t1,
+            t2,
+            scale_interval,
+            scale_algorithm,
+            scale_size,
+            result,
+    ):
+        data = nxcals.getScaled(
+            variables,
+            t1,
+            t2,
+            scaleInterval=scale_interval,
+            scaleAlgorithm=scale_algorithm,
+            scaleSize=scale_size,
+        )
+
+        t, v = data[variables[0]]
+
+        assert (v[:4] - result).sum() == 0
+
     @staticmethod
     def is_close(float_a, float_b, prec):
         if round(float_a, prec) == round(float_b, prec):
@@ -331,15 +367,16 @@ class TestIntegration:
         @pytest.mark.parametrize("pattern, var_cnt", [
             ("%LUMI%INST", 10)])
         def test_get_variables_with_name_like_pattern(self, nxcals, pattern, var_cnt):
+            # Currently Java VariableSet object returned
             variables = nxcals.getVariableSet(pattern)
-            assert len (variables) == var_cnt
+            assert len(variables) == var_cnt
 
         @pytest.mark.parametrize("varlist", [
-            ("")])
+            (["ALICE:BUNCH_LUMI_INST", "ALICE:LUMI_TOT_INST"])])
         def test_get_variables_with_name_in_list(self, nxcals, varlist):
-            # TODO
+            # Currently Java VariableSet object returned
             variables = nxcals.getVariableSet(varlist)
-            assert True
+            assert len(variables) == 2
 
         @pytest.mark.parametrize(
             "variable, t1, t2, idx1, idx2, value",
