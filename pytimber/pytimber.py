@@ -156,8 +156,8 @@ class LoggingDB(object):
                 "cern"
             ).nxcals.api.backport.domain.core.constants.BeamModeValue
 
-            h = self._md.getAllHierarchies()
-            print(h)
+#            h = self._md.getAllHierarchies()
+#            print(h)
         else:
             # Data source preferences
             DataLocPrefs = jpype.JPackage(

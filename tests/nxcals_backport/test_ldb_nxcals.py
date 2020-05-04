@@ -378,12 +378,12 @@ class TestIntegration:
             "variable, t1, t2, idx1, idx2, value",
             [
                 (
-                    "LHC.BOFSU:BPM_NAMES_H",
-                    "2016-03-28 00:00:00.000",
-                    "2016-03-28 23:59:59.999",
+                    "HIE-BCAM-T3M04:RAWMEAS#SEQ_ID",
+                    "2018-03-26 00:00:00.000",
+                    "2018-03-26 06:00:00.000",
                     0,
-                    123,
-                    "BPM.16L3.B1",
+                    2,
+                    "SEQ_T3M04_FRONT_03",
                 )
             ],
         )
