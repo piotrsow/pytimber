@@ -5,7 +5,7 @@ from enum import Enum, unique
 class SparkResources(Enum):
     SMALL = ("small", "2G", "10")
     MEDIUM = ("medium", "4G", "20")
-    LARGE = ("large", "8G", "40")
+    LARGE = ("large", "8G", "20")
     CUSTOM = ("custom", "", "")
 
     def __init__(self, description, memory, cores):
